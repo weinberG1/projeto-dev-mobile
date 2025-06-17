@@ -10,7 +10,7 @@ import {
     Alert,
     StyleSheet
 } from 'react-native';
-import { DangerButton } from '../components/Buttons';
+import { DangerButton } from '../components/Button.js';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import {

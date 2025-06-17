@@ -1,7 +1,6 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import ChatScreen from "../screens/ChatScreen";
-import { AuthProvider } from "../context/AuthContext";
-import HomeScreen from "../screens/HomeScreen";
+import { AuthProvider } from "../context/AuthContext.js";
+import HomeScreen from "../screens/HomeScreen.js";
 
 export default function AppNavigator () {
     const Stack = createNativeStackNavigator();
