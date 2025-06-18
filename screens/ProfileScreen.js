@@ -11,6 +11,7 @@ import {v4 as uuidv4} from 'uuid';
 
 import { auth, db, doc, getDoc } from '../firebase';
 import { DangerButton, SecondaryButton } from '../components/Button.js';
+import { snapshotEqual } from 'firebase/firestore';
 
 export default function ProfileScreen() {
     const [userData, setUserData] = useState(null);
@@ -47,14 +48,30 @@ export default function ProfileScreen() {
             }
         })
     }
+    // This function is responsible to upload the image into firestore database
+
+    //In this function, we upload an image to firestore database, in which:
+
+    //We have imageRef, that is ?
+
+    //Furthermore, we have the task, that we try to put the file from user's gallery into firestore database.
+
+    //Passing this line of code, we have the progress tracker, where we detect the state-changed, via snapshot (might be the image itself)
+
+    
 
     const uploadImage = async(imageUri) => {
-        const filename = `${uuidv4()}.jpg`;
-        const storageRef = storage().ref(`users/$`)
+        const imageRef = storage().ref(`users/${uniqueFileName}.jpg`)
+        const task = imageRef.putFile(imageUri)
 
-        try{
-            await storageRef.putFile
-        }
+        task.on('state-changed', snapshot => {
+            const progress = (snapshot.byteTransferred / snapshot.totalBytes) * 100;
+            console.log(`Upload is ${progress}% done`)
+        })
+
+        task.then(async () =>{
+            const downloadURL = await imageRef.getDownloadURL();
+        })
     }
 
     useEffect(() => {
