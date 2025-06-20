@@ -4,178 +4,199 @@ import {
     SafeAreaView,
     Text,
     TouchableOpacity,
-    Modal,
     View,
-    TextInput,
-    Alert,
-    StyleSheet
+    StyleSheet,
+    Image,
+    ActivityIndicator
 } from 'react-native';
-import { DangerButton } from '../components/Button.js';
-import { signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import {
     collection,
     query,
-    where,
+    orderBy,
     getDocs,
-    setDoc,
     doc,
-    addDoc,
-    onSnapshot,
-    serverTimestamp
+    updateDoc,
+    arrayUnion,
+    arrayRemove,
+    onSnapshot
 } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
     const { user } = useAuth();
     const navigation = useNavigation();
 
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [email, setEmail] = useState('');
-    const [message, setMessage] = useState('');
-    const [chats, setChats] = useState([]);
+    const [posts, setPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         if (!user?.email) return;
-
-        const q = query(
-            collection(db, 'chats'),
-            where('members', 'array-contains', user.email)
-        );
-
-        const unsubscribe = onSnapshot(q, async (snapshot) => {
-            const userChats = snapshot.docs.map(doc => ({
+        
+        loadPosts();
+        
+        // Configura um listener para atualizações em tempo real da coleção posts
+        const postsRef = collection(db, 'posts');
+        const q = query(postsRef, orderBy('timestamp', 'desc'));
+        
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const postData = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
-
-            setChats(userChats);
+            setPosts(postData);
+            setLoading(false);
+            setRefreshing(false);
         });
-
+        
         return () => unsubscribe();
     }, [user?.email]);
 
-    const handleStartConversation = async () => {
-        if (!email || !message) {
-            Alert.alert('Erro', 'Preencha o e-mail e a mensagem.');
-            return;
+    const loadPosts = async () => {
+        try {
+            setRefreshing(true);
+            const postsRef = collection(db, 'posts');
+            const q = query(postsRef, orderBy('timestamp', 'desc'));
+            const querySnapshot = await getDocs(q);
+            
+            const postData = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            setPosts(postData);
+        } catch (error) {
+            console.error('Erro ao carregar posts:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
-
-        if (email.toLowerCase() === user.email.toLowerCase()) {
-            Alert.alert('Erro', 'Você não pode iniciar uma conversa com você mesmo.');
-            return;
-        }
-
-        const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            Alert.alert('Erro', 'Usuário não encontrado.');
-            return;
-        }
-
-        const [email1, email2] = [user.email, email.toLowerCase()].sort();
-        const chatKey = `${email1}_${email2}`;
-
-        const chatQuery = query(collection(db, 'chats'), where('chatKey', '==', chatKey));
-        const existingChats = await getDocs(chatQuery);
-
-        let chatId;
-        if (!existingChats.empty) {
-            chatId = existingChats.docs[0].id;
-        } else {
-            const newChatRef = doc(collection(db, 'chats'));
-            await setDoc(newChatRef, {
-                members: [email1, email2],
-                chatKey,
-                created_at: serverTimestamp()
-            });
-            chatId = newChatRef.id;
-
-            const messagesRef = collection(db, 'chats', chatId, 'messages');
-            await addDoc(messagesRef, {
-                from: user.email,
-                text: message.trim(),
-                timestamp: serverTimestamp()
-            });
-        }
-
-        setIsModalVisible(false);
-        setEmail('');
-        setMessage('');
-        navigation.navigate('Chat', { chatId });
     };
 
-    const handleOpenChat = (chatId) => {
-        navigation.navigate('Chat', { chatId });
+    const handleLikePost = async (postId) => {
+        if (!user?.email) return;
+        
+        try {
+            const postRef = doc(db, 'posts', postId);
+            const post = posts.find(p => p.id === postId);
+            
+            if (post?.likes?.includes(user.email)) {
+                // Remove o like se já curtiu
+                await updateDoc(postRef, {
+                    likes: arrayRemove(user.email)
+                });
+            } else {
+                // Adiciona o like se não curtiu
+                await updateDoc(postRef, {
+                    likes: arrayUnion(user.email)
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao curtir post:', error);
+        }
+    };
+
+    const handleProfilePress = (email) => {
+        navigation.navigate('Profile', { email });
+    };
+
+    const goToMyProfile = () => {
+        navigation.navigate('Profile', { email: user.email });
     };
 
     const renderItem = ({ item }) => {
-        const otherUserId = item.members.find(m => m !== user.email);
-
+        const isLiked = item.likes?.includes(user.email);
+        
         return (
-            <TouchableOpacity style={styles.chatItem} onPress={() => handleOpenChat(item.id)}>
-                <Text style={styles.chatTitle}>
-                    {otherUserId || 'Usuário'}
-                </Text>
-            </TouchableOpacity>
+            <View style={styles.postCard}>
+                <TouchableOpacity 
+                    style={styles.postHeader} 
+                    onPress={() => handleProfilePress(item.autor)}
+                >
+                    <View style={styles.profileImagePlaceholder}>
+                        {item.autorFoto ? (
+                            <Image source={{ uri: item.autorFoto }} style={styles.profileImage} />
+                        ) : (
+                            <Text style={styles.profileInitial}>
+                                {item.autorNome ? item.autorNome.charAt(0).toUpperCase() : 'U'}
+                            </Text>
+                        )}
+                    </View>
+                    <Text style={styles.authorName}>{item.autorNome || item.autor}</Text>
+                </TouchableOpacity>
+                
+                {item.foto && (
+                    <Image source={{ uri: item.foto }} style={styles.postImage} />
+                )}
+                
+                <Text style={styles.postDescription}>{item.descricao}</Text>
+                
+                {item.localizacao && (
+                    <View style={styles.locationContainer}>
+                        <Ionicons name="location" size={16} color="#888" />
+                        <Text style={styles.locationText}>{item.localizacao}</Text>
+                    </View>
+                )}
+                
+                <View style={styles.postFooter}>
+                    <TouchableOpacity 
+                        style={styles.likeButton} 
+                        onPress={() => handleLikePost(item.id)}
+                    >
+                        <Ionicons 
+                            name={isLiked ? "heart" : "heart-outline"} 
+                            size={24} 
+                            color={isLiked ? "#e74c3c" : "#888"} 
+                        />
+                        <Text style={styles.likeCount}>
+                            {item.likes?.length || 0}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
         );
     };
 
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#27428f" />
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>Conversas</Text>
-
-            <TouchableOpacity
-                onPress={() => setIsModalVisible(true)}
-                style={styles.startButton}>
-                <Text style={styles.startButtonText}>Iniciar Conversa</Text>
-            </TouchableOpacity>
-
-            <FlatList
-                data={chats}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-            />
-
-            <Modal visible={isModalVisible} transparent animationType="slide">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
-                        <TextInput
-                            onChangeText={setEmail}
-                            placeholder="E-mail do destinatário"
-                            style={styles.input}
-                            value={email}
-                        />
-                        <TextInput
-                            onChangeText={setMessage}
-                            multiline
-                            placeholder="Digite sua mensagem..."
-                            style={[styles.input, styles.messageInput]}
-                            value={message}
-                        />
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity onPress={() => setIsModalVisible(false)} style={styles.cancelButton}>
-                                <Text style={styles.buttonText}>Cancelar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={handleStartConversation} style={styles.confirmButton}>
-                                <Text style={styles.buttonText}>Iniciar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            <Text style={{ textAlign: 'center', fontSize: 20 }}>Meu e-mail: {user && user.email}</Text>
-
-            <View style={{ paddingHorizontal: 40 }}>
-                <DangerButton
-                    text="Sair da conta"
-                    action={() => signOut(auth)}
-                />
+            <View style={styles.header}>
+                <Text style={styles.title}>Feed de Treinos</Text>
+                <TouchableOpacity 
+                    style={styles.profileButton}
+                    onPress={goToMyProfile}
+                >
+                    <Ionicons name="person-circle" size={32} color="#27428f" />
+                </TouchableOpacity>
             </View>
             
+            <FlatList
+                data={posts}
+                renderItem={renderItem}
+                keyExtractor={item => item.id}
+                refreshing={refreshing}
+                onRefresh={loadPosts}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContainer}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>Nenhum post encontrado.</Text>
+                        <Text style={styles.emptySubText}>Sem treinos para exibir.</Text>
+                    </View>
+                }
+            />
         </SafeAreaView>
     );
 }
@@ -184,75 +205,129 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 16,
-        backgroundColor: '#fff'
+        backgroundColor: '#f8f8f8'
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginVertical: 15,
+        position: 'relative',
+    },
+    profileButton: {
+        position: 'absolute',
+        right: 5,
+        padding: 5,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginBottom: 20
+        color: '#27428f'
     },
-    startButton: {
-        backgroundColor: '#172b4d',
-        paddingVertical: 12,
-        borderRadius: 10,
-        marginHorizontal: 40,
-        marginBottom: 20
+    listContainer: {
+        paddingBottom: 20
     },
-    startButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        textAlign: 'center'
+    postCard: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        marginBottom: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        padding: 12
     },
-    chatItem: {
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc'
+    postHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+        padding: 8
     },
-    chatTitle: {
-        fontSize: 18
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+    profileImagePlaceholder: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#27428f',
         justifyContent: 'center',
         alignItems: 'center'
     },
-    modalContainer: {
-        backgroundColor: 'white',
-        padding: 20,
-        width: '90%',
-        borderRadius: 16
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 8,
-        padding: 10,
-        marginBottom: 12
-    },
-    messageInput: {
-        height: 120,
-        textAlignVertical: 'top'
-    },
-    modalButtons: {
-        flexDirection: 'row',
-        justifyContent: 'space-between'
-    },
-    cancelButton: {
-        backgroundColor: '#888',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 10
-    },
-    confirmButton: {
-        backgroundColor: '#172b4d',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 10
-    },
-    buttonText: {
+    profileInitial: {
         color: '#fff',
+        fontSize: 18,
         fontWeight: 'bold'
+    },
+    profileImage: {
+        width: 40,
+        height: 40,
+        borderRadius: 20
+    },
+    authorName: {
+        marginLeft: 10,
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#27428f'
+    },
+    postImage: {
+        width: '100%',
+        height: 300,
+        borderRadius: 8,
+        marginBottom: 10
+    },
+    postDescription: {
+        fontSize: 16,
+        marginVertical: 10,
+        paddingHorizontal: 8
+    },
+    locationContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        marginBottom: 10
+    },
+    locationText: {
+        fontSize: 14,
+        color: '#888',
+        marginLeft: 4
+    },
+    postFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#eee'
+    },
+    likeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 8
+    },
+    likeCount: {
+        marginLeft: 6,
+        fontSize: 16,
+        color: '#666'
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 60
+    },
+    emptyText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#666'
+    },
+    emptySubText: {
+        fontSize: 16,
+        color: '#888',
+        marginTop: 8
     }
 });

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useRoute } from '@react-navigation/native';
+import { signOut } from 'firebase/auth';
 
 import { auth, db } from '../firebase';
 import {
@@ -57,8 +58,6 @@ export default function ProfileScreen() {
             maxWidth: 2000,
         };
     
-
-
         launchImageLibrary(options, (response) => {
             if (response.didCancel) {
                 console.log('User cancelled image picker');
@@ -176,10 +175,17 @@ export default function ProfileScreen() {
                         <Text style={styles.info}>{userData?.phone || 'Não informado'}</Text>
 
                         {viewedEmail === auth.currentUser.email && (
-                            <SecondaryButton
-                                action={() => setEditMode(true)}
-                                text="Editar perfil"
-                            />
+                            <>
+                                <SecondaryButton
+                                    action={() => setEditMode(true)}
+                                    text="Editar perfil"
+                                />
+                                <View style={{ height: 10 }} />
+                                <DangerButton
+                                    text="Sair da conta"
+                                    action={() => signOut(auth)}
+                                />
+                            </>
                         )}
                     </>
                 )}
