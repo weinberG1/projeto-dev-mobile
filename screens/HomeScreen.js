@@ -5,11 +5,8 @@ import {
     TouchableOpacity,
     View,
     StyleSheet,
-    Image,
-    ActivityIndicator,
     Alert
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../firebase';
 import {
     collection,
@@ -26,6 +23,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { HomeHeader } from '../components/Header';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { PostItem } from '../components/PostItem';
 
 export default function HomeScreen() {
     const { user } = useAuth();
@@ -139,94 +139,24 @@ export default function HomeScreen() {
         navigation.navigate('CreatePost');
     };
 
-    const renderItem = ({ item }) => {
-        const isLiked = item.likes?.includes(user.email);
-        const isOwnPost = item.autor === user.email;
-        
-        return (
-            <View style={styles.postCard}>
-                <TouchableOpacity 
-                    style={styles.postHeader} 
-                    onPress={() => handleProfilePress(item.autor)}
-                >
-                    <View style={styles.profileImagePlaceholder}>
-                        {item.autorFoto ? (
-                            <Image source={{ uri: item.autorFoto }} style={styles.profileImage} />
-                        ) : (
-                            <Text style={styles.profileInitial}>
-                                {item.autorNome ? item.autorNome.charAt(0).toUpperCase() : 'U'}
-                            </Text>
-                        )}
-                    </View>
-                    <Text style={styles.authorName}>{item.autorNome || item.autor}</Text>
-                </TouchableOpacity>
-                
-                {item.foto && (
-                    <Image source={{ uri: item.foto }} style={styles.postImage} />
-                )}
-                
-                <Text style={styles.postDescription}>{item.descricao}</Text>
-                
-                {item.localizacao && (
-                    <View style={styles.locationContainer}>
-                        <Ionicons name="location" size={16} color="#888" />
-                        <Text style={styles.locationText}>{item.localizacao}</Text>
-                    </View>
-                )}
-                
-                <View style={styles.postFooter}>
-                    <TouchableOpacity 
-                        style={styles.likeButton} 
-                        onPress={() => handleLikePost(item.id)}
-                    >
-                        <Ionicons 
-                            name={isLiked ? "heart" : "heart-outline"} 
-                            size={24} 
-                            color={isLiked ? "#e74c3c" : "#888"} 
-                        />
-                        <Text style={styles.likeCount}>
-                            {item.likes?.length || 0}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {isOwnPost && (
-                        <TouchableOpacity 
-                            style={styles.deleteButton} 
-                            onPress={() => handleDeletePost(item.id)}
-                        >
-                            <Ionicons name="trash-outline" size={24} color="#888" />
-                        </TouchableOpacity>
-                    )}
-                </View>
-            </View>
-        );
-    };
-
-    if (loading) {
-        return (
-            <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#27428f" />
-                </View>
-            </SafeAreaView>
-        );
-    }
-
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Feed de Treinos</Text>
-                <TouchableOpacity 
-                    style={styles.profileButton}
-                    onPress={goToMyProfile}
-                >
-                    <Ionicons name="person-circle" size={32} color="#27428f" />
-                </TouchableOpacity>
-            </View>
+        <ScreenContainer loading={loading}>
+            <HomeHeader 
+                title="Feed de Treinos" 
+                onProfilePress={goToMyProfile}
+            />
             
             <FlatList
                 data={posts}
-                renderItem={renderItem}
+                renderItem={({ item }) => (
+                    <PostItem
+                        post={item}
+                        currentUserEmail={user?.email}
+                        onLikePress={handleLikePost}
+                        onDeletePress={handleDeletePost}
+                        onAuthorPress={handleProfilePress}
+                    />
+                )}
                 keyExtractor={item => item.id}
                 refreshing={refreshing}
                 onRefresh={loadPosts}
@@ -246,127 +176,14 @@ export default function HomeScreen() {
             >
                 <Ionicons name="add" size={30} color="#fff" />
             </TouchableOpacity>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f8f8f8'
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginVertical: 15,
-        position: 'relative',
-        paddingHorizontal: 16
-    },
-    profileButton: {
-        position: 'absolute',
-        right: 16,
-        padding: 5,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        color: '#27428f'
-    },
     listContainer: {
         paddingHorizontal: 16,
         paddingBottom: 20
-    },
-    postCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-        padding: 12
-    },
-    postHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 10,
-        padding: 8
-    },
-    profileImagePlaceholder: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#27428f',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    profileInitial: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold'
-    },
-    profileImage: {
-        width: 40,
-        height: 40,
-        borderRadius: 20
-    },
-    authorName: {
-        marginLeft: 10,
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#27428f'
-    },
-    postImage: {
-        width: '100%',
-        height: 300,
-        borderRadius: 8,
-        marginBottom: 10
-    },
-    postDescription: {
-        fontSize: 16,
-        marginVertical: 10,
-        paddingHorizontal: 8
-    },
-    locationContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        marginBottom: 10
-    },
-    locationText: {
-        fontSize: 14,
-        color: '#888',
-        marginLeft: 4
-    },
-    postFooter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 8,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        borderTopColor: '#eee'
-    },
-    likeButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 8
-    },
-    likeCount: {
-        marginLeft: 6,
-        fontSize: 16,
-        color: '#666'
-    },
-    deleteButton: {
-        padding: 8
     },
     emptyContainer: {
         alignItems: 'center',

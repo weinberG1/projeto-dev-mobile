@@ -4,13 +4,13 @@ import {
     View,
     StyleSheet,
 } from "react-native";
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { PrimaryButton, SecondaryButton } from '../components/Button.js';
 import { EmailInput, PasswordInput, CustomTextInput } from '../components/CustomInput.js';
 import { addDoc, collection } from 'firebase/firestore';
+import { ScreenContainer } from '../components/ScreenContainer';
 
 export default function RegisterScreen () {
 
@@ -64,7 +64,7 @@ export default function RegisterScreen () {
     }, [email, password, name, phone])
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <ScreenContainer>
             <View style={styles.container}>
                 <Text style={styles.title}>Registrar-se</Text>
                 <CustomTextInput placeholder="Nome" value={name} setValue={setName} />
@@ -84,15 +84,11 @@ export default function RegisterScreen () {
                     navigation.goBack();
                 }} />
             </View>
-        </SafeAreaView>
+        </ScreenContainer>
     )
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#f8f8f8'
-    },
     container: {
         marginHorizontal: 25,
         marginVertical: 15
