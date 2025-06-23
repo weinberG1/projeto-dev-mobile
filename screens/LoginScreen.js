@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
-    SafeAreaView,
     Text,
     View,
     StyleSheet,
     TouchableOpacity
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -57,7 +57,7 @@ export default function LoginScreen () {
     }, [email, password])
 
     return (
-        <SafeAreaView>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
             <View style={styles.container}>
                 <Text style={styles.title}>Entrar</Text>
                 <EmailInput value={email} setValue={setEmail} />
@@ -89,8 +89,13 @@ export default function LoginScreen () {
 }
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#f8f8f8'
+    },
     container: {
-        margin: 25
+        marginHorizontal: 25,
+        marginVertical: 15
     },
     title: {
         fontSize: 45,

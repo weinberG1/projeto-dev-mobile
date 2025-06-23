@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import {
-    SafeAreaView,
     Text,
     View,
     StyleSheet,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { PrimaryButton, SecondaryButton } from '../components/Button.js';
-import { EmailInput, PasswordInput } from '../components/CustomInput.js';
+import { EmailInput, PasswordInput, CustomTextInput } from '../components/CustomInput.js';
 import { addDoc, collection } from 'firebase/firestore';
 
 export default function RegisterScreen () {
@@ -21,12 +21,14 @@ export default function RegisterScreen () {
 
     const [ email, setEmail ] = useState('');
     const [ password, setPassword ] = useState('');
+    const [ name, setName ] = useState('');
+    const [ phone, setPhone ] = useState('');
 
     const [ errorMessage, setErrorMessage ] = useState('');
 
     const register = async () => {
-        if (!email || !password) {
-            setErrorMessage('Informe o e-mail e senha.');
+        if (!email || !password || !name || !phone) {
+            setErrorMessage('Preencha todos os campos.');
             return;
         }
 
@@ -42,31 +44,32 @@ export default function RegisterScreen () {
 
         setErrorMessage('');
 
-        createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             console.log('Usuário: ', user);
-        })
-        .catch((error) => {
+            
+            await addDoc(collection(db, 'users'), {
+                email: email,
+                name: name,
+                phone: phone 
+            });
+        } catch (error) {
             setErrorMessage(error.message);
-        })
-
-        await addDoc(collection(db, 'users'), {
-            email: email 
-        });
-       
+        }
     }
 
     useEffect(() => {
         setErrorMessage('');
-    }, [email, password])
+    }, [email, password, name, phone])
 
     return (
-        <SafeAreaView>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
             <View style={styles.container}>
                 <Text style={styles.title}>Registrar-se</Text>
+                <CustomTextInput placeholder="Nome" value={name} setValue={setName} />
+                <CustomTextInput placeholder="Telefone" value={phone} setValue={setPhone} />
                 <EmailInput value={email} setValue={setEmail} />
-                
                 <PasswordInput value={password} setValue={setPassword} />
                 {errorMessage &&
                     <Text style={styles.errorMessage}>{errorMessage}</Text>
@@ -86,8 +89,13 @@ export default function RegisterScreen () {
 }
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#f8f8f8'
+    },
     container: {
-        margin: 25
+        marginHorizontal: 25,
+        marginVertical: 15
     },
     title: {
         fontSize: 45,

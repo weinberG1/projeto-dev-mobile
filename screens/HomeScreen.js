@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import {
     FlatList,
-    SafeAreaView,
     Text,
     TouchableOpacity,
     View,
     StyleSheet,
     Image,
-    ActivityIndicator
+    ActivityIndicator,
+    Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../firebase';
 import {
     collection,
@@ -19,7 +20,8 @@ import {
     updateDoc,
     arrayUnion,
     arrayRemove,
-    onSnapshot
+    onSnapshot,
+    deleteDoc
 } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
@@ -99,6 +101,32 @@ export default function HomeScreen() {
         }
     };
 
+    const handleDeletePost = async (postId) => {
+        Alert.alert(
+            "Confirmar exclusão",
+            "Tem certeza que deseja excluir esta publicação?",
+            [
+                {
+                    text: "Cancelar",
+                    style: "cancel"
+                },
+                {
+                    text: "Excluir",
+                    onPress: async () => {
+                        try {
+                            await deleteDoc(doc(db, 'posts', postId));
+                            // O listener onSnapshot já vai atualizar a lista
+                        } catch (error) {
+                            console.error('Erro ao excluir post:', error);
+                            Alert.alert('Erro', 'Não foi possível excluir a publicação');
+                        }
+                    },
+                    style: "destructive"
+                }
+            ]
+        );
+    };
+
     const handleProfilePress = (email) => {
         navigation.navigate('Profile', { email });
     };
@@ -107,8 +135,13 @@ export default function HomeScreen() {
         navigation.navigate('Profile', { email: user.email });
     };
 
+    const goToCreatePost = () => {
+        navigation.navigate('CreatePost');
+    };
+
     const renderItem = ({ item }) => {
         const isLiked = item.likes?.includes(user.email);
+        const isOwnPost = item.autor === user.email;
         
         return (
             <View style={styles.postCard}>
@@ -155,6 +188,15 @@ export default function HomeScreen() {
                             {item.likes?.length || 0}
                         </Text>
                     </TouchableOpacity>
+
+                    {isOwnPost && (
+                        <TouchableOpacity 
+                            style={styles.deleteButton} 
+                            onPress={() => handleDeletePost(item.id)}
+                        >
+                            <Ionicons name="trash-outline" size={24} color="#888" />
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         );
@@ -162,7 +204,7 @@ export default function HomeScreen() {
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#27428f" />
                 </View>
@@ -171,7 +213,7 @@ export default function HomeScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}>
                 <Text style={styles.title}>Feed de Treinos</Text>
                 <TouchableOpacity 
@@ -197,6 +239,13 @@ export default function HomeScreen() {
                     </View>
                 }
             />
+
+            <TouchableOpacity 
+                style={styles.fabButton}
+                onPress={goToCreatePost}
+            >
+                <Ionicons name="add" size={30} color="#fff" />
+            </TouchableOpacity>
         </SafeAreaView>
     );
 }
@@ -204,7 +253,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 16,
         backgroundColor: '#f8f8f8'
     },
     header: {
@@ -213,10 +261,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginVertical: 15,
         position: 'relative',
+        paddingHorizontal: 16
     },
     profileButton: {
         position: 'absolute',
-        right: 5,
+        right: 16,
         padding: 5,
     },
     loadingContainer: {
@@ -231,6 +280,7 @@ const styles = StyleSheet.create({
         color: '#27428f'
     },
     listContainer: {
+        paddingHorizontal: 16,
         paddingBottom: 20
     },
     postCard: {
@@ -315,6 +365,9 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#666'
     },
+    deleteButton: {
+        padding: 8
+    },
     emptyContainer: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -329,5 +382,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#888',
         marginTop: 8
+    },
+    fabButton: {
+        position: 'absolute',
+        right: 20,
+        bottom: 20,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#27428f',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3
     }
 });
