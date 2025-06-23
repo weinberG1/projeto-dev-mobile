@@ -18,7 +18,16 @@ Repositório contendo o app de Desenvolvimento de Aplicaçao Mobile
 ```bash
 git clone https://github.com/weinberG1/projeto-dev-mobile.git
 ```
-
+2. Instalação das dependências:
+- No terminal, entre na pasta onde foi clonado o projeto:
+```bash
+cd projeto-dev-mobile
+npm install
+```
+3. Para rodar o aplicativo: 
+```bash
+npm start
+```
 
 ## Funcionalidades
 O aplicativo foi desenvolvido com o objetivo de oferecer uma plataforma social voltada para entusiastas de musculação e treinos físicos. Os usuários podem registrar suas rotinas, interagir com outras pessoas e manter um histórico de treinos. Abaixo, seguem as principais funcionalidades do app:
@@ -43,4 +52,4 @@ Organização cronológica: Os treinos são exibidos no feed geral em ordem cron
 ## Feed Social
 Visualizar o feed geral: Todos os treinos publicados pelos usuários aparecem em um feed semelhante ao de redes sociais tradicionais.
 
-Interação social: Os usuários podem curtir e comentar as publicações de treino de outras pessoas, incentivando o engajamento e a motivação mútua.
+Interação social: Os usuários podem curtir e interagir com outras pessoas, incentivando o engajamento e a motivação mútua.
