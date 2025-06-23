@@ -3,16 +3,14 @@ import {
     Text,
     View,
     StyleSheet,
-    ActivityIndicator,
     TextInput,
     ScrollView,
     Alert,
     Image,
     TouchableOpacity
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { launchImageLibrary } from 'react-native-image-picker';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { signOut } from 'firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -29,6 +27,9 @@ import {
 } from 'firebase/firestore';
 
 import { DangerButton, SecondaryButton } from '../components/Button.js';
+import { Header } from '../components/Header';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { PostItem } from '../components/PostItem';
 
 export default function ProfileScreen() {
     const route = useRoute();
@@ -145,60 +146,9 @@ export default function ProfileScreen() {
         fetchUserData();
     }, [viewedEmail]);
 
-    if (loading) {
-        return (
-            <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#27428f" />
-                </View>
-            </SafeAreaView>
-        );
-    }
-
-    const renderPostItem = (item) => (
-        <View style={styles.postCard} key={item.id}>
-            {item.foto && (
-                <Image source={{ uri: item.foto }} style={styles.postImage} />
-            )}
-            
-            <Text style={styles.postDescription}>{item.descricao}</Text>
-            
-            {item.localizacao && (
-                <View style={styles.locationContainer}>
-                    <Ionicons name="location" size={16} color="#888" />
-                    <Text style={styles.locationText}>{item.localizacao}</Text>
-                </View>
-            )}
-            
-            <View style={styles.postFooter}>
-                <View style={styles.likeContainer}>
-                    <Ionicons name="heart" size={20} color="#888" />
-                    <Text style={styles.likeCount}>{item.likes?.length || 0} curtidas</Text>
-                </View>
-                
-                {isOwnProfile && (
-                    <TouchableOpacity 
-                        style={styles.deleteButton}
-                        onPress={() => handleDeletePost(item.id)}
-                    >
-                        <Ionicons name="trash-outline" size={22} color="#888" />
-                    </TouchableOpacity>
-                )}
-            </View>
-        </View>
-    );
-
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-            <View style={styles.header}>
-                <TouchableOpacity 
-                    style={styles.backButton} 
-                    onPress={() => navigation.goBack()}
-                >
-                    <Ionicons name="arrow-back" size={24} color="#27428f" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Perfil</Text>
-            </View>
+        <ScreenContainer loading={loading}>
+            <Header title="Perfil" />
 
             <ScrollView 
                 style={styles.scrollView}
@@ -262,7 +212,15 @@ export default function ProfileScreen() {
                 <View style={styles.postsSection}>
                     <Text style={styles.sectionTitle}>Publicações</Text>
                     {posts.length > 0 ? (
-                        posts.map(item => renderPostItem(item))
+                        posts.map(post => (
+                            <PostItem 
+                                key={post.id}
+                                post={post}
+                                currentUserEmail={auth.currentUser?.email}
+                                onDeletePress={handleDeletePost}
+                                showActions={isOwnProfile}
+                            />
+                        ))
                     ) : (
                         <View style={styles.emptyPostsContainer}>
                             <Text style={styles.emptyPostsText}>Nenhuma publicação encontrada</Text>
@@ -270,42 +228,11 @@ export default function ProfileScreen() {
                     )}
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#f8f8f8'
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        position: 'relative',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-    },
-    backButton: {
-        position: 'absolute',
-        left: 15,
-        zIndex: 10,
-        padding: 5,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        flex: 1,
-        color: '#27428f'
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
     scrollView: {
         flex: 1,
     },
@@ -380,55 +307,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 15,
         color: '#27428f'
-    },
-    postCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-        overflow: 'hidden'
-    },
-    postImage: {
-        width: '100%',
-        height: 200,
-    },
-    postDescription: {
-        fontSize: 16,
-        padding: 12
-    },
-    locationContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingBottom: 10
-    },
-    locationText: {
-        fontSize: 14,
-        color: '#888',
-        marginLeft: 4
-    },
-    postFooter: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: '#eee',
-        padding: 12
-    },
-    likeContainer: {
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
-    likeCount: {
-        marginLeft: 5,
-        color: '#666'
-    },
-    deleteButton: {
-        padding: 5
     },
     emptyPostsContainer: {
         alignItems: 'center',

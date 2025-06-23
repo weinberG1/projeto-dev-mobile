@@ -11,6 +11,7 @@ import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { PrimaryButton, SecondaryButton } from '../components/Button.js';
 import { EmailInput, PasswordInput } from '../components/CustomInput.js';
+import { ScreenContainer } from '../components/ScreenContainer';
 
 export default function LoginScreen () {
 
@@ -57,7 +58,7 @@ export default function LoginScreen () {
     }, [email, password])
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <ScreenContainer>
             <View style={styles.container}>
                 <Text style={styles.title}>Entrar</Text>
                 <EmailInput value={email} setValue={setEmail} />
@@ -84,15 +85,11 @@ export default function LoginScreen () {
                     navigation.push('Register');
                 }} />
             </View>
-        </SafeAreaView>
+        </ScreenContainer>
     )
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#f8f8f8'
-    },
     container: {
         marginHorizontal: 25,
         marginVertical: 15

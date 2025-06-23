@@ -9,7 +9,6 @@ import {
     Alert,
     ActivityIndicator
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
@@ -17,6 +16,8 @@ import { PrimaryButton, SecondaryButton } from '../components/Button';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
+import { Header } from '../components/Header';
+import { ScreenContainer } from '../components/ScreenContainer';
 
 export default function CreatePostScreen() {
     const navigation = useNavigation();
@@ -166,16 +167,8 @@ export default function CreatePostScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-            <View style={styles.header}>
-                <TouchableOpacity 
-                    style={styles.backButton} 
-                    onPress={() => navigation.goBack()}
-                >
-                    <Ionicons name="arrow-back" size={24} color="#27428f" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Novo Treino</Text>
-            </View>
+        <ScreenContainer>
+            <Header title="Novo Treino" />
 
             <View style={styles.content}>
                 <View style={styles.imageContainer}>
@@ -251,32 +244,11 @@ export default function CreatePostScreen() {
                     <PrimaryButton text="Publicar" action={createPost} />
                 )}
             </View>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f8f8f8'
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 15,
-        position: 'relative',
-        paddingHorizontal: 16
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        flex: 1,
-        color: '#27428f'
-    },
-    backButton: {
-        padding: 8,
-    },
     content: {
         flex: 1,
         padding: 16
