@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import {
-    SafeAreaView,
     Text,
     View,
     StyleSheet,
     TextInput,
     TouchableOpacity
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ForgotPasswordScreen () {
 
@@ -44,9 +45,19 @@ export default function ForgotPasswordScreen () {
     }, [email])
 
     return (
-        <SafeAreaView>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+            <View style={styles.header}>
+                <TouchableOpacity 
+                    style={styles.backButton} 
+                    onPress={() => navigation.goBack()}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#27428f" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Esqueci a senha</Text>
+            </View>
+
             <View style={styles.container}>
-                <Text style={styles.title}>Esqueci a senha</Text>
+                <Text style={styles.title}>Redefinir Senha</Text>
                 <TextInput
                     placeholder="E-mail"
                     placeholderTextColor="black"
@@ -82,13 +93,35 @@ export default function ForgotPasswordScreen () {
 }
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#f8f8f8'
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+    },
+    backButton: {
+        padding: 5,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        flex: 1,
+        textAlign: 'center',
+        marginRight: 30,
+        color: '#27428f'
+    },
     container: {
-        margin: 25
+        marginHorizontal: 25,
+        marginVertical: 15
     },
     title: {
-        fontSize: 45,
+        fontSize: 30,
         textAlign: 'center',
-        marginVertical: 40
+        marginVertical: 30
     },
     input: {
         width: '100%',
